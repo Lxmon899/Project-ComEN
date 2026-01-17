@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Resistor Color Code Calculator — 4/5/6 Bands</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="wrap grid two">
+    <section class="card">
+      <div class="kicker">SP-งานครั้งที่ 4</div>
+      <h1>โปรแกรมคำนวณค่าตัวต้านทานไฟฟ้า (Resistor Color Code)</h1>
+      <p class="sub">เลือกจำนวนแถบสี 4/5/6 แล้วตั้งค่าสีแต่ละแถบ โปรแกรมจะคำนวณค่าโอห์ม (Ω) ความคลาดเคลื่อน (Tolerance) และค่าสัมประสิทธิ์อุณหภูมิ (ppm/°C) ทันที</p>
+
+      <div class="grid" style="gap:24px">
+        <div class="row">
+          <div>
+            <label for="bandCount">จำนวนแถบสี</label><br>
+            <select id="bandCount">
+              <option value="4">4 แถบ</option>
+              <option value="5">5 แถบ</option>
+              <option value="6" selected>6 แถบ</option>
+            </select>
+          </div>
+          <div class="pill"><span class="muted">แถบ 1</span><span id="chip1" class="dot"></span></div>
+          <div class="pill"><span class="muted">แถบ 2</span><span id="chip2" class="dot"></span></div>
+          <div class="pill" id="chip3wrap"><span class="muted">แถบ 3</span><span id="chip3" class="dot"></span></div>
+          <div class="pill"><span class="muted">ตัวคูณ</span><span id="chipMul" class="dot"></span></div>
+          <div class="pill"><span class="muted">Tolerance</span><span id="chipTol" class="dot"></span></div>
+          <div class="pill" id="chipTcrWrap"><span class="muted">TCR</span><span id="chipTcr" class="dot"></span></div>
+        </div>
+
+        <div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:16px">
+          <div>
+            <label>แถบที่ 1 (ตัวเลขหลักที่ 1)</label>
+            <select id="d1"></select>
+          </div>
+          <div>
+            <label>แถบที่ 2 (ตัวเลขหลักที่ 2)</label>
+            <select id="d2"></select>
+          </div>
+          <div id="d3wrap">
+            <label>แถบที่ 3 (ตัวเลขหลักที่ 3)</label>
+            <select id="d3"></select>
+          </div>
+          <div>
+            <label>แถบตัวคูณ (Multiplier)</label>
+            <select id="mul"></select>
+          </div>
+          <div>
+            <label>แถบความคลาดเคลื่อน (Tolerance)</label>
+            <select id="tol"></select>
+          </div>
+          <div id="tcrwrap">
+            <label>แถบ TCR (ppm/°C)</label>
+            <select id="tcr"></select>
+          </div>
+        </div>
+
+        <div class="grid" style="grid-template-columns:1.2fr 1fr; gap:16px">
+          <div class="card">
+            <div class="kicker">ผลลัพธ์</div>
+            <div class="out" id="outVal">—</div>
+            <div class="mono muted" id="outRaw">—</div>
+            <div class="mono muted" id="outTol">—</div>
+            <div class="mono muted" id="outTcr">—</div>
+            <div class="row" style="margin-top:10px">
+              <button id="copyBtn">คัดลอกผลลัพธ์</button>
+              <span class="tip">รูปแบบ: ค่าโอห์ม ±Tolerance (และ TCR สำหรับ 6 แถบ)</span>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="kicker">ตัวอย่างตัวต้านทาน</div>
+            <div class="svgwrap">
+              <svg id="resSvg" viewBox="0 0 520 130" width="100%" height="120" aria-label="Resistor preview">
+                <!-- leads -->
+                <rect x="10" y="60" width="160" height="10" fill="#cbd5e1"/>
+                <rect x="350" y="60" width="160" height="10" fill="#cbd5e1"/>
+                <!-- body -->
+                <rect x="170" y="35" rx="16" ry="16" width="180" height="60" fill="#f5deb3" stroke="#e0c08a" />
+                <!-- bands (positions evenly spaced) -->
+                <g id="bands">
+                  <rect id="b1" x="185" y="35" width="12" height="60" fill="#000"/>
+                  <rect id="b2" x="205" y="35" width="12" height="60" fill="#000"/>
+                  <rect id="b3" x="225" y="35" width="12" height="60" fill="#000"/>
+                  <rect id="bMul" x="260" y="35" width="12" height="60" fill="#000"/>
+                  <rect id="bTol" x="280" y="35" width="12" height="60" fill="#000"/>
+                  <rect id="bTcr" x="320" y="35" width="12" height="60" fill="#000"/>
+                </g>
+              </svg>
+            </div>
+            <div class="tip">หมายเหตุ: ถ้าเป็น 4 แถบ จะใช้เฉพาะแถบที่ 1–2, ตัวคูณ และค่าคลาดเคลื่อน</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <aside class="card">
+      <h3 style="margin-top:0">คู่มือย่อ</h3>
+      <ul>
+        <li><b>4 แถบ</b>: หลักที่ 1, หลักที่ 2, ตัวคูณ, ค่าคลาดเคลื่อน</li>
+        <li><b>5 แถบ</b>: หลักที่ 1, หลักที่ 2, หลักที่ 3, ตัวคูณ, ค่าคลาดเคลื่อน</li>
+        <li><b>6 แถบ</b>: เหมือน 5 แถบ + <b>TCR</b> (ppm/°C)</li>
+      </ul>
+      <p class="tip">TCR (Temperature Coefficient of Resistance) บอกการเปลี่ยนแปลงของค่าความต้านทานต่ออุณหภูมิ 1°C (เช่น 100 ppm/°C ≈ เปลี่ยน 0.01% ต่อองศา)</p>
+      <div class="footer">© สำหรับการเรียน | เขียนด้วย HTML/CSS/JS ไฟล์เดียว</div>
+    </aside>
+  </div>
+
+<script>
+  // ====== Data tables ======
+  const COLOR_HEX = {
+    black:"#000000", brown:"#795548", red:"#e11d48", orange:"#fb923c",
+    yellow:"#facc15", green:"#22c55e", blue:"#3b82f6", violet:"#7c3aed",
+    grey:"#9ca3af", white:"#e5e7eb", gold:"#bfa008", silver:"#c0c0c0",
+    none:"#0b1220"
+  };
+
+  const DIGIT_COLORS = [
+    {name:"ดำ (0)", key:"black", val:0},
+    {name:"น้ำตาล (1)", key:"brown", val:1},
+    {name:"แดง (2)", key:"red", val:2},
+    {name:"ส้ม (3)", key:"orange", val:3},
+    {name:"เหลือง (4)", key:"yellow", val:4},
+    {name:"เขียว (5)", key:"green", val:5},
+    {name:"ฟ้า (6)", key:"blue", val:6},
+    {name:"ม่วง (7)", key:"violet", val:7},
+    {name:"เทา (8)", key:"grey", val:8},
+    {name:"ขาว (9)", key:"white", val:9}
+  ];
+
+  const MULTIPLIER = [
+    {name:"เงิน (×0.01)", key:"silver", pow:-2, mul:0.01},
+    {name:"ทอง (×0.1)",  key:"gold",   pow:-1, mul:0.1},
+    {name:"ดำ (×1)",     key:"black",  pow:0,  mul:1},
+    {name:"น้ำตาล (×10)", key:"brown", pow:1,  mul:10},
+    {name:"แดง (×100)",  key:"red",    pow:2,  mul:100},
+    {name:"ส้ม (×1k)",   key:"orange", pow:3,  mul:1e3},
+    {name:"เหลือง (×10k)", key:"yellow", pow:4, mul:1e4},
+    {name:"เขียว (×100k)", key:"green", pow:5, mul:1e5},
+    {name:"ฟ้า (×1M)",   key:"blue",   pow:6, mul:1e6},
+    {name:"ม่วง (×10M)",  key:"violet", pow:7, mul:1e7},
+    {name:"เทา (×100M)",  key:"grey",   pow:8, mul:1e8},
+    {name:"ขาว (×1G)",    key:"white",  pow:9, mul:1e9}
+  ];
+
+  const TOLERANCE = [
+    {name:"ไม่มีแถบ (±20%)", key:"none", pct:20},
+    {name:"เงิน (±10%)", key:"silver", pct:10},
+    {name:"ทอง (±5%)",  key:"gold",   pct:5},
+    {name:"น้ำตาล (±1%)", key:"brown", pct:1},
+    {name:"แดง (±2%)",    key:"red",   pct:2},
+    {name:"เขียว (±0.5%)", key:"green", pct:0.5},
+    {name:"ฟ้า (±0.25%)",  key:"blue",  pct:0.25},
+    {name:"ม่วง (±0.1%)",  key:"violet", pct:0.1},
+    {name:"เทา (±0.05%)",  key:"grey",   pct:0.05}
+  ];
+
+  const TCR = [
+    {name:"น้ำตาล (100 ppm/°C)", key:"brown", ppm:100},
+    {name:"แดง (50 ppm/°C)",    key:"red",   ppm:50},
+    {name:"ส้ม (15 ppm/°C)",    key:"orange", ppm:15},
+    {name:"เหลือง (25 ppm/°C)", key:"yellow", ppm:25},
+    {name:"ฟ้า (10 ppm/°C)",     key:"blue",   ppm:10},
+    {name:"ม่วง (5 ppm/°C)",     key:"violet", ppm:5}
+  ];
+
+  // ====== DOM ======
+  const bandCountEl = document.getElementById('bandCount');
+  const d1El = document.getElementById('d1');
+  const d2El = document.getElementById('d2');
+  const d3El = document.getElementById('d3');
+  const mulEl= document.getElementById('mul');
+  const tolEl= document.getElementById('tol');
+  const tcrEl= document.getElementById('tcr');
+  const d3wrap= document.getElementById('d3wrap');
+  const tcrwrap= document.getElementById('tcrwrap');
+
+  const outVal = document.getElementById('outVal');
+  const outRaw = document.getElementById('outRaw');
+  const outTol = document.getElementById('outTol');
+  const outTcr = document.getElementById('outTcr');
+  const copyBtn = document.getElementById('copyBtn');
+
+  const chips = {
+    chip1: document.getElementById('chip1'),
+    chip2: document.getElementById('chip2'),
+    chip3: document.getElementById('chip3'),
+    chipMul: document.getElementById('chipMul'),
+    chipTol: document.getElementById('chipTol'),
+    chipTcr: document.getElementById('chipTcr')
+  };
+  const chip3wrap = document.getElementById('chip3wrap');
+  const chipTcrWrap = document.getElementById('chipTcrWrap');
+
+  const bands = {
+    b1: document.getElementById('b1'),
+    b2: document.getElementById('b2'),
+    b3: document.getElementById('b3'),
+    bMul: document.getElementById('bMul'),
+    bTol: document.getElementById('bTol'),
+    bTcr: document.getElementById('bTcr')
+  };
+
+  // ====== Helpers ======
+  function fillSelect(el, arr){
+    el.innerHTML = arr.map((o,i)=>`<option value="${i}">${o.name}</option>`).join('');
+  }
+  function setChip(el, colorKey){ el.style.background = COLOR_HEX[colorKey] || '#0b1220'; }
+  function setBand(el, colorKey){ el.setAttribute('fill', COLOR_HEX[colorKey] || '#0b1220'); }
+
+  function fmtOhm(v){
+    const abs = Math.abs(v);
+    const unit = abs>=1e9? 'GΩ' : abs>=1e6? 'MΩ' : abs>=1e3? 'kΩ' : 'Ω';
+    const div = unit==='GΩ'?1e9: unit==='MΩ'?1e6: unit==='kΩ'?1e3:1;
+    const num = v/div;
+    const s = (num>=100? num.toFixed(0) : num>=10? num.toFixed(1) : num.toFixed(2));
+    return `${s} ${unit}`;
+  }
+
+  function compute(){
+    const bandsN = parseInt(bandCountEl.value,10);
+    const d1 = DIGIT_COLORS[d1El.value|0];
+    const d2 = DIGIT_COLORS[d2El.value|0];
+    const hasD3 = (bandsN>=5);
+    const d3 = hasD3 ? DIGIT_COLORS[d3El.value|0] : null;
+    const mul = MULTIPLIER[mulEl.value|0];
+    const tol = TOLERANCE[tolEl.value|0];
+    const hasTcr = (bandsN===6);
+    const tcr = hasTcr ? TCR[tcrEl.value|0] : null;
+
+    let sig = hasD3 ? (d1.val*100 + d2.val*10 + d3.val) : (d1.val*10 + d2.val);
+    let ohm = sig * mul.mul;
+
+    outVal.textContent = `${fmtOhm(ohm)} \u00B1${tol.pct}%` + (hasTcr? `, TCR ${tcr.ppm} ppm/°C` : '');
+    outRaw.textContent = `ตัวเลขสำคัญ: ${hasD3? `${d1.val}-${d2.val}-${d3.val}`:`${d1.val}-${d2.val}`}  × ตัวคูณ 10^${mul.pow}`;
+    outTol.textContent = `Tolerance: \u00B1${tol.pct}%`;
+    outTcr.textContent = hasTcr ? `TCR: ${tcr.ppm} ppm/°C` : '';
+
+    setChip(chips.chip1, d1.key); setBand(bands.b1, d1.key);
+    setChip(chips.chip2, d2.key); setBand(bands.b2, d2.key);
+    chip3wrap.style.display = hasD3? 'inline-flex':'none';
+    bands.b3.style.display   = hasD3? 'block':'none';
+    if(hasD3){ setChip(chips.chip3, d3.key); setBand(bands.b3, d3.key); }
+    setChip(chips.chipMul, mul.key); setBand(bands.bMul, mul.key);
+    setChip(chips.chipTol, tol.key); setBand(bands.bTol, tol.key);
+    chipTcrWrap.style.display = hasTcr? 'inline-flex':'none';
+    bands.bTcr.style.display  = hasTcr? 'block':'none';
+    if(hasTcr){ setChip(chips.chipTcr, tcr.key); setBand(bands.bTcr, tcr.key); }
+
+    d3wrap.style.display  = hasD3? 'block':'none';
+    tcrwrap.style.display = hasTcr? 'block':'none';
+  }
+
+  // ====== Init ======
+  fillSelect(d1El, DIGIT_COLORS);
+  fillSelect(d2El, DIGIT_COLORS);
+  fillSelect(d3El, DIGIT_COLORS);
+  fillSelect(mulEl, MULTIPLIER);
+  fillSelect(tolEl, TOLERANCE);
+  fillSelect(tcrEl, TCR);
+
+  // defaults (5.62 kΩ ±1%, TCR 100 ppm/°C)
+  d1El.value = 5; d2El.value = 6; d3El.value = 2;
+  mulEl.value = (function(){ return MULTIPLIER.findIndex(m=>m.pow===3); })();
+  tolEl.value = (function(){ return TOLERANCE.findIndex(t=>t.pct===1); })();
+  tcrEl.value = 0;
+
+  bandCountEl.addEventListener('change', compute);
+  [d1El,d2El,d3El,mulEl,tolEl,tcrEl].forEach(el=> el.addEventListener('change', compute));
+
+  compute();
+</script>
+</body>
+</html>
